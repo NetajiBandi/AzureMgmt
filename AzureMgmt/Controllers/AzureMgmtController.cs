@@ -40,7 +40,7 @@ namespace AzureMgmt.Controllers
         }
 
         [HttpGet("[action]")]
-        public void CreateVM()
+        public async Task<IActionResult> CreateVM()
         {
             try
             {
@@ -55,55 +55,56 @@ namespace AzureMgmt.Controllers
                     .WithDefaultSubscription();
 
                 var location = Region.USWest;
-                var vmName = "AzureMgmtFirstVM";
+                var vmName = "FirstVM";
                 var groupName = "AzureMgmtResourceGroup";
 
-                var resourceGroup = azure.ResourceGroups.Define(groupName)
+                var resourceGroup = await azure.ResourceGroups.Define(groupName)
                     .WithRegion(location)
-                    .Create();
+                    .CreateAsync();
 
-                var availabilitySet = azure.AvailabilitySets.Define("AzureMgmtAVSet")
+                var availabilitySet = await azure.AvailabilitySets.Define("AzureMgmtAVSet")
                     .WithRegion(location)
                     .WithExistingResourceGroup(groupName)
                     .WithSku(AvailabilitySetSkuTypes.Aligned)
-                    .Create();
+                    .CreateAsync();
 
-                var publicIPAddress = azure.PublicIPAddresses.Define("AzureMgmtPublicIP")
+                var publicIPAddress = await azure.PublicIPAddresses.Define("AzureMgmtPublicIP")
                     .WithRegion(location)
                     .WithExistingResourceGroup(groupName)
                     .WithDynamicIP()
-                    .Create();
+                    .CreateAsync();
 
-                var network = azure.Networks.Define("AzureMgmtVNet")
+                var network = await azure.Networks.Define("AzureMgmtVNet")
                     .WithRegion(location)
                     .WithExistingResourceGroup(groupName)
                     .WithAddressSpace("10.0.0.0/16")
-                    .WithSubnet("mySubnet", "10.0.0.0/24")
-                    .Create();
+                    .WithSubnet("AzureMgmtSubnet", "10.0.0.0/24")
+                    .CreateAsync();
 
-                var networkInterface = azure.NetworkInterfaces.Define("AzureMgmtNIC")
+                var networkInterface = await azure.NetworkInterfaces.Define("AzureMgmtNIC")
                     .WithRegion(location)
                     .WithExistingResourceGroup(groupName)
                     .WithExistingPrimaryNetwork(network)
                     .WithSubnet("AzureMgmtSubnet")
                     .WithPrimaryPrivateIPAddressDynamic()
                     .WithExistingPrimaryPublicIPAddress(publicIPAddress)
-                    .Create();
+                    .CreateAsync();
 
-                azure.VirtualMachines.Define(vmName)
+                await azure.VirtualMachines.Define(vmName)
                     .WithRegion(location)
                     .WithExistingResourceGroup(groupName)
                     .WithExistingPrimaryNetworkInterface(networkInterface)
                     .WithLatestWindowsImage("MicrosoftWindowsServer", "WindowsServer", "2012-R2-Datacenter")
-                    .WithAdminUsername("dumpatipavankumar@gmail.com")
+                    .WithAdminUsername("dumpatipavankumar")
                     .WithAdminPassword("Airforce@22")
                     .WithComputerName(vmName)
                     .WithExistingAvailabilitySet(availabilitySet)
-                    .WithSize(VirtualMachineSizeTypes.StandardB1s)
-                    .Create();
+                    .WithSize(VirtualMachineSizeTypes.StandardD1)
+                    .CreateAsync();
 
+                return Ok();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
