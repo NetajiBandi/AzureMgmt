@@ -29,9 +29,9 @@
               name="size"
               [(ngModel)]="vmConfig.size"
               #size="ngModel">
-        <option value="D1">Standard D1</option>
-        <option value="D2">Standard D2</option>
-        <option value="D11">Standard D11</option>
+        <option value="StandardD1">Standard D1</option>
+        <option value="StandardD2">Standard D2</option>
+        <option value="StandardD11">Standard D11</option>
       </select>
 
       <div [hidden]="size.valid || size.pristine"

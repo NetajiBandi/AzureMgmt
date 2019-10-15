@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using AzureMgmt.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Management.Compute.Fluent;
 using Microsoft.Azure.Management.Compute.Fluent.Models;
 using Microsoft.Azure.Management.Fluent;
 using Microsoft.Azure.Management.ResourceManager.Fluent;
@@ -17,29 +15,29 @@ namespace AzureMgmt.Controllers
     {
         private readonly IWebHostEnvironment _webHostEnvironment;
 
+        private readonly Region location;
+
+        private readonly string groupName;
+
         public AzureMgmtController(IWebHostEnvironment webHostEnvironment)
         {
             _webHostEnvironment = webHostEnvironment;
+            groupName = "AzureMgmtResourceGroup";
+            location = Region.USWest;
         }
 
-        [HttpGet("[action]")]
-        public async Task<IActionResult> CreateVM()
+        [HttpPost("[action]")]
+        public async Task<IActionResult> CreateVM([FromBody]VMConfig vmConfig)
         {
             try
             {
-                string contentRootPath = _webHostEnvironment.ContentRootPath;
-
-                var credentials = SdkContext.AzureCredentialsFactory.FromFile(contentRootPath + "\\azureauth.properties");
+                var credentials = SdkContext.AzureCredentialsFactory.FromFile(_webHostEnvironment.ContentRootPath + "\\azureauth.properties");
 
                 var azure = Azure
                     .Configure()
                     .WithLogLevel(HttpLoggingDelegatingHandler.Level.Basic)
                     .Authenticate(credentials)
                     .WithDefaultSubscription();
-
-                var location = Region.USWest;
-                var vmName = "FirstVM";
-                var groupName = "AzureMgmtResourceGroup";
 
                 var resourceGroup = await azure.ResourceGroups.Define(groupName)
                     .WithRegion(location)
@@ -73,16 +71,30 @@ namespace AzureMgmt.Controllers
                     .WithExistingPrimaryPublicIPAddress(publicIPAddress)
                     .CreateAsync();
 
-                await azure.VirtualMachines.Define(vmName)
+                VirtualMachineSizeTypes size;
+                if (vmConfig.size == "StandardD1")
+                {
+                    size = VirtualMachineSizeTypes.StandardD1;
+                }
+                else if(vmConfig.size == "StandardD2")
+                {
+                    size = VirtualMachineSizeTypes.StandardD2;
+                }
+                else
+                {
+                    size = VirtualMachineSizeTypes.StandardD11;
+                }
+
+                await azure.VirtualMachines.Define(vmConfig.name)
                     .WithRegion(location)
                     .WithExistingResourceGroup(groupName)
                     .WithExistingPrimaryNetworkInterface(networkInterface)
                     .WithLatestWindowsImage("MicrosoftWindowsServer", "WindowsServer", "2012-R2-Datacenter")
                     .WithAdminUsername("dumpatipavankumar")
                     .WithAdminPassword("Airforce@22")
-                    .WithComputerName(vmName)
+                    .WithComputerName(vmConfig.name)
                     .WithExistingAvailabilitySet(availabilitySet)
-                    .WithSize(VirtualMachineSizeTypes.StandardD1)
+                    .WithSize(size)
                     .CreateAsync();
 
                 return Ok();
