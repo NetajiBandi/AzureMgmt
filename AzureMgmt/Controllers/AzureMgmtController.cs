@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using AzureMgmt.Models;
 using Microsoft.AspNetCore.Hosting;
@@ -18,6 +19,8 @@ namespace AzureMgmt.Controllers
         private readonly Region location;
 
         private readonly string groupName;
+
+        private static Random random = new Random();
 
         public AzureMgmtController(IWebHostEnvironment webHostEnvironment)
         {
@@ -49,7 +52,7 @@ namespace AzureMgmt.Controllers
                     .WithSku(AvailabilitySetSkuTypes.Aligned)
                     .CreateAsync();
 
-                var publicIPAddress = await azure.PublicIPAddresses.Define("AzureMgmtPublicIP")
+                var publicIPAddress = await azure.PublicIPAddresses.Define("AzureMgmtPublicIP" + RandomString(5))
                     .WithRegion(location)
                     .WithExistingResourceGroup(groupName)
                     .WithDynamicIP()
@@ -62,7 +65,7 @@ namespace AzureMgmt.Controllers
                     .WithSubnet("AzureMgmtSubnet", "10.0.0.0/24")
                     .CreateAsync();
 
-                var networkInterface = await azure.NetworkInterfaces.Define("AzureMgmtNIC")
+                var networkInterface = await azure.NetworkInterfaces.Define("AzureMgmtNIC" + RandomString(5))
                     .WithRegion(location)
                     .WithExistingResourceGroup(groupName)
                     .WithExistingPrimaryNetwork(network)
@@ -76,7 +79,7 @@ namespace AzureMgmt.Controllers
                 {
                     size = VirtualMachineSizeTypes.StandardD1;
                 }
-                else if(vmConfig.size == "StandardD2")
+                else if (vmConfig.size == "StandardD2")
                 {
                     size = VirtualMachineSizeTypes.StandardD2;
                 }
@@ -103,6 +106,12 @@ namespace AzureMgmt.Controllers
             {
                 throw;
             }
+        }
+
+        public static string RandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
     }
