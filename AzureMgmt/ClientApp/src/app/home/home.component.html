@@ -38,7 +38,7 @@
   </form>
 </div>
 
-<br/>
+<br />
 <p *ngIf="!vmList"><em>Loading...</em></p>
 
 <div class="container">
@@ -56,7 +56,10 @@
         <td class="col-md-2">{{ vm.vmName }}</td>
         <td class="col-md-2">{{ vm.vmSize }}</td>
         <td class="col-md-6"><p>{{ vm.errorMessage }}</p></td>
-        <td class="col-md-2">{{ vm.timestamp | date :'dd-MMM-yy h:mm:ss a z'}}</td>
+        <td class="col-md-2">{{ vm.timestamp | date :'dd-MMM-yy h:mm:ss a'}}</td>
+      </tr>
+      <tr *ngIf="vmList.length == 0">
+        No VM(s) available.
       </tr>
     </tbody>
   </table>

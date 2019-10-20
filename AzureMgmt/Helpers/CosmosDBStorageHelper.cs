@@ -26,11 +26,11 @@ namespace AzureMgmt.Helpers
                 await table.CreateIfNotExistsAsync();
 
                 // Create the InsertOrMerge table operation
-                TableOperation insertOrMergeOperation = TableOperation.InsertOrMerge(entity);
+                var insertOrMergeOperation = TableOperation.InsertOrMerge(entity);
 
                 // Execute the operation.
-                TableResult result = await table.ExecuteAsync(insertOrMergeOperation);
-                VMRequestLogEntity insertedVMRequestLogEntity = result.Result as VMRequestLogEntity;
+                var result = await table.ExecuteAsync(insertOrMergeOperation);
+                var insertedVMRequestLogEntity = result.Result as VMRequestLogEntity;
 
                 if (result.RequestCharge.HasValue)
                 {
@@ -52,8 +52,7 @@ namespace AzureMgmt.Helpers
         /// <returns>Gets all VMs</returns>
         public static async Task<IEnumerable<VMRequestLogEntity>> GetAllVMsAsync(CloudTable table)
         {
-            TableQuery<VMRequestLogEntity> query = new TableQuery<VMRequestLogEntity>();
-            return await table.ExecuteQuerySegmentedAsync(query, null);
+            return await table.ExecuteQuerySegmentedAsync(new TableQuery<VMRequestLogEntity>(), null);
         }
     }
 }

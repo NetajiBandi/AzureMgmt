@@ -15,12 +15,12 @@ export class HomeComponent {
   constructor(http: HttpClient, @Inject('BASE_URL') baseUrl: string) {
     this._http = http;
     this._baseUrl = baseUrl;
-    //setInterval(() => {
+    setInterval(() => {
       http.get<VMConfig[]>(baseUrl + 'api/AzureMgmt/ListVM').subscribe(result => {
         this.vmList = result;
         console.log(this.vmList)
       }, error => console.error(error));
-    //}, 5000);
+    }, 5000);
   }
 
   onSubmit() {

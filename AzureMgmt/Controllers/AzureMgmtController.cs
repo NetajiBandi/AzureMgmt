@@ -7,9 +7,12 @@ using AzureMgmt.Helpers;
 using AzureMgmt.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos.Table;
+using Microsoft.Azure.Management.Compute.Fluent;
 using Microsoft.Azure.Management.Compute.Fluent.Models;
 using Microsoft.Azure.Management.Fluent;
+using Microsoft.Azure.Management.Network.Fluent;
 using Microsoft.Azure.Management.ResourceManager.Fluent;
+using Microsoft.Azure.Management.ResourceManager.Fluent.Authentication;
 using Microsoft.Azure.Management.ResourceManager.Fluent.Core;
 
 namespace AzureMgmt.Controllers
@@ -25,7 +28,7 @@ namespace AzureMgmt.Controllers
         /// <summary>
         /// The random
         /// </summary>
-        private static Random random;
+        private static readonly Random random;
 
         /// <summary>
         /// The group name
@@ -53,6 +56,31 @@ namespace AzureMgmt.Controllers
         private static readonly CloudTable table;
 
         /// <summary>
+        /// The credentials
+        /// </summary>
+        private static readonly AzureCredentials credentials;
+
+        /// <summary>
+        /// The azure
+        /// </summary>
+        private static readonly IAzure azure;
+
+        /// <summary>
+        /// The resource group
+        /// </summary>
+        private static readonly IResourceGroup resourceGroup;
+
+        /// <summary>
+        /// The availability set
+        /// </summary>
+        private static readonly IAvailabilitySet availabilitySet;
+
+        /// <summary>
+        /// The network
+        /// </summary>
+        private static readonly INetwork network;
+
+        /// <summary>
         /// Initializes the <see cref="AzureMgmtController"/> class.
         /// </summary>
         static AzureMgmtController()
@@ -60,12 +88,17 @@ namespace AzureMgmt.Controllers
             random = new Random();
             location = Region.USWest;
             groupName = "AzureMgmtResourceGroup";
-            connectionString = "DefaultEndpointsProtocol=https;AccountName=azuremgmtdb;AccountKey=OrRZd2n4uZkdtDLSAIynYp9oZLMsyGF4I7FLwnxOUQ0QRSmMQZhdvOjreGH2tA8sRGehzWcyYg8ExCXBGAa7Zg==;TableEndpoint=https://azuremgmtdb.table.cosmos.azure.com:443/;";
 
+            connectionString = "DefaultEndpointsProtocol=https;AccountName=azuremgmtdb;AccountKey=OrRZd2n4uZkdtDLSAIynYp9oZLMsyGF4I7FLwnxOUQ0QRSmMQZhdvOjreGH2tA8sRGehzWcyYg8ExCXBGAa7Zg==;TableEndpoint=https://azuremgmtdb.table.cosmos.azure.com:443/;";
             storageAccount = CloudStorageAccount.Parse(connectionString);
             tableClient = storageAccount.CreateCloudTableClient();
-
             table = tableClient.GetTableReference("VMRequestLog");
+
+            credentials = SdkContext.AzureCredentialsFactory.FromServicePrincipal("86ef4bad-b38b-4c3f-9357-978ab053c831", "UH[7m1l=GL?Iu@si68d4qO]9Dg0NM?N-", "4bc521c7-c8c1-4e45-bfd3-157a81938f71", AzureEnvironment.AzureGlobalCloud);
+            azure = Azure.Configure().WithLogLevel(HttpLoggingDelegatingHandler.Level.Basic).Authenticate(credentials).WithDefaultSubscription();
+            resourceGroup = azure.ResourceGroups.Define(groupName).WithRegion(location).Create();
+            availabilitySet = azure.AvailabilitySets.Define("AzureMgmtAVSet").WithRegion(location).WithExistingResourceGroup(groupName).WithSku(AvailabilitySetSkuTypes.Aligned).Create();
+            network = azure.Networks.Define("AzureMgmtVNet").WithRegion(location).WithExistingResourceGroup(groupName).WithAddressSpace("10.0.0.0/16").WithSubnet("AzureMgmtSubnet", "10.0.0.0/24").Create();
         }
 
         /// <summary>
@@ -81,45 +114,9 @@ namespace AzureMgmt.Controllers
                 {
                     await SaveRequestLogToDB(vmConfig);
 
-                    var credentials = SdkContext.AzureCredentialsFactory.FromServicePrincipal("86ef4bad-b38b-4c3f-9357-978ab053c831", "UH[7m1l=GL?Iu@si68d4qO]9Dg0NM?N-", "4bc521c7-c8c1-4e45-bfd3-157a81938f71", AzureEnvironment.AzureGlobalCloud);
+                    var publicIPAddress = await azure.PublicIPAddresses.Define("AzureMgmtPublicIP" + RandomString(5)).WithRegion(location).WithExistingResourceGroup(groupName).WithDynamicIP().CreateAsync();
 
-                    var azure = Azure
-                            .Configure()
-                            .WithLogLevel(HttpLoggingDelegatingHandler.Level.Basic)
-                            .Authenticate(credentials)
-                            .WithDefaultSubscription();
-
-                    var resourceGroup = await azure.ResourceGroups.Define(groupName)
-                            .WithRegion(location)
-                            .CreateAsync();
-
-                    var availabilitySet = await azure.AvailabilitySets.Define("AzureMgmtAVSet")
-                            .WithRegion(location)
-                            .WithExistingResourceGroup(groupName)
-                            .WithSku(AvailabilitySetSkuTypes.Aligned)
-                            .CreateAsync();
-
-                    var publicIPAddress = await azure.PublicIPAddresses.Define("AzureMgmtPublicIP" + RandomString(5))
-                            .WithRegion(location)
-                            .WithExistingResourceGroup(groupName)
-                            .WithDynamicIP()
-                            .CreateAsync();
-
-                    var network = await azure.Networks.Define("AzureMgmtVNet")
-                            .WithRegion(location)
-                            .WithExistingResourceGroup(groupName)
-                            .WithAddressSpace("10.0.0.0/16")
-                            .WithSubnet("AzureMgmtSubnet", "10.0.0.0/24")
-                            .CreateAsync();
-
-                    var networkInterface = await azure.NetworkInterfaces.Define("AzureMgmtNIC" + RandomString(5))
-                            .WithRegion(location)
-                            .WithExistingResourceGroup(groupName)
-                            .WithExistingPrimaryNetwork(network)
-                            .WithSubnet("AzureMgmtSubnet")
-                            .WithPrimaryPrivateIPAddressDynamic()
-                            .WithExistingPrimaryPublicIPAddress(publicIPAddress)
-                            .CreateAsync();
+                    var networkInterface = await azure.NetworkInterfaces.Define("AzureMgmtNIC" + RandomString(5)).WithRegion(location).WithExistingResourceGroup(groupName).WithExistingPrimaryNetwork(network).WithSubnet("AzureMgmtSubnet").WithPrimaryPrivateIPAddressDynamic().WithExistingPrimaryPublicIPAddress(publicIPAddress).CreateAsync();
 
                     var size = GetVMSize(vmConfig);
                     await azure.VirtualMachines.Define(vmConfig.VMName)
@@ -144,6 +141,10 @@ namespace AzureMgmt.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Lists the VMs.
+        /// </summary>
+        /// <returns>Lists the VMs</returns>
         [HttpGet("[action]")]
         public async Task<IEnumerable<VMRequestLogEntity>> ListVM()
         {
