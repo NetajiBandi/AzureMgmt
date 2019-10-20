@@ -22,11 +22,11 @@ namespace AzureMgmt.Helpers
 
             try
             {
-                // Create the Insert table operation
-                TableOperation insertOperation = TableOperation.Insert(entity);
+                // Create the InsertOrMerge table operation
+                TableOperation insertOrMergeOperation = TableOperation.InsertOrMerge(entity);
 
                 // Execute the operation.
-                TableResult result = await table.ExecuteAsync(insertOperation);
+                TableResult result = await table.ExecuteAsync(insertOrMergeOperation);
                 VMRequestLogEntity insertedVMRequestLogEntity = result.Result as VMRequestLogEntity;
 
                 if (result.RequestCharge.HasValue)

@@ -88,7 +88,7 @@ namespace AzureMgmt.Controllers
                 {
                     await SaveRequestLogToDB(vmConfig);
 
-                    var credentials = SdkContext.AzureCredentialsFactory.FromFile(_webHostEnvironment.ContentRootPath + "\\azureauth.properties");
+                    var credentials = SdkContext.AzureCredentialsFactory.FromServicePrincipal("86ef4bad-b38b-4c3f-9357-978ab053c831", "UH[7m1l=GL?Iu@si68d4qO]9Dg0NM?N-", "4bc521c7-c8c1-4e45-bfd3-157a81938f71", AzureEnvironment.AzureGlobalCloud);
 
                     var azure = Azure
                             .Configure()
@@ -143,7 +143,8 @@ namespace AzureMgmt.Controllers
                 }
                 catch (Exception ex)
                 {
-                    throw ex;
+                    var message = "Message: " + ex.Message + " InnerException: " + ex.StackTrace.ToString();
+                    await SaveRequestLogToDB(vmConfig, message);
                 }
             });
 
@@ -154,7 +155,7 @@ namespace AzureMgmt.Controllers
         /// Saves the request log to database.
         /// </summary>
         /// <param name="vmConfig">The VM configuration.</param>
-        private static async Task SaveRequestLogToDB(VMConfig vmConfig)
+        private static async Task SaveRequestLogToDB(VMConfig vmConfig, string exceptionMessage = "NA")
         {
             CloudTable table = tableClient.GetTableReference("VMRequestLog");
             await table.CreateIfNotExistsAsync();
@@ -162,7 +163,8 @@ namespace AzureMgmt.Controllers
             VMRequestLogEntity vmRequestLogEntity = new VMRequestLogEntity(vmConfig.name, vmConfig.size)
             {
                 VMName = vmConfig.name,
-                VMSize = vmConfig.size
+                VMSize = vmConfig.size,
+                ErrorMessage = exceptionMessage
             };
 
             await CosmosDBStorageHelper.InsertOrMergeEntityAsync(table, vmRequestLogEntity);
