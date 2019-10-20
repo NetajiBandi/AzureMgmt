@@ -17,15 +17,14 @@ export class HomeComponent {
   }
 
   onSubmit() {
-    console.log(this.vmConfig);
-
     this._http.post(this._baseUrl + 'api/AzureMgmt/CreateVM', this.vmConfig).subscribe(
       (val) => {
-        console.log("POST call successful value returned in body",
-          val);
+        console.log("POST call successful value returned in body", val);
+        alert("VM request submitted successfully.")
       },
       response => {
         console.log("POST call in error", response);
+        alert("VM request submission failed.")
       },
       () => {
         console.log("The POST observable is now completed.");
