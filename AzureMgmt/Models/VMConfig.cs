@@ -2,7 +2,7 @@
 {
     public class VMConfig
     {
-        public string name { get; set; }
-        public string size { get; set; }
+        public string VMName { get; set; }
+        public string VMSize { get; set; }
     }
 }

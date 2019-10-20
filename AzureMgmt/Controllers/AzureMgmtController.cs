@@ -1,10 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AzureMgmt.Entities;
 using AzureMgmt.Helpers;
 using AzureMgmt.Models;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Azure.Management.Compute.Fluent.Models;
@@ -17,11 +17,6 @@ namespace AzureMgmt.Controllers
     [Route("api/[controller]")]
     public class AzureMgmtController : Controller
     {
-        /// <summary>
-        /// The web host environment
-        /// </summary>
-        private readonly IWebHostEnvironment _webHostEnvironment;
-
         /// <summary>
         /// The location
         /// </summary>
@@ -53,6 +48,11 @@ namespace AzureMgmt.Controllers
         private static readonly CloudTableClient tableClient;
 
         /// <summary>
+        /// The table
+        /// </summary>
+        private static readonly CloudTable table;
+
+        /// <summary>
         /// Initializes the <see cref="AzureMgmtController"/> class.
         /// </summary>
         static AzureMgmtController()
@@ -64,15 +64,8 @@ namespace AzureMgmt.Controllers
 
             storageAccount = CloudStorageAccount.Parse(connectionString);
             tableClient = storageAccount.CreateCloudTableClient();
-        }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AzureMgmtController"/> class.
-        /// </summary>
-        /// <param name="webHostEnvironment">The web host environment.</param>
-        public AzureMgmtController(IWebHostEnvironment webHostEnvironment)
-        {
-            _webHostEnvironment = webHostEnvironment;
+            table = tableClient.GetTableReference("VMRequestLog");
         }
 
         /// <summary>
@@ -129,14 +122,14 @@ namespace AzureMgmt.Controllers
                             .CreateAsync();
 
                     var size = GetVMSize(vmConfig);
-                    await azure.VirtualMachines.Define(vmConfig.name)
+                    await azure.VirtualMachines.Define(vmConfig.VMName)
                             .WithRegion(location)
                             .WithExistingResourceGroup(groupName)
                             .WithExistingPrimaryNetworkInterface(networkInterface)
                             .WithLatestWindowsImage("MicrosoftWindowsServer", "WindowsServer", "2012-R2-Datacenter")
                             .WithAdminUsername("dumpatipavankumar")
                             .WithAdminPassword("Airforce@22")
-                            .WithComputerName(vmConfig.name)
+                            .WithComputerName(vmConfig.VMName)
                             .WithExistingAvailabilitySet(availabilitySet)
                             .WithSize(size)
                             .CreateAsync();
@@ -151,19 +144,22 @@ namespace AzureMgmt.Controllers
             return Ok();
         }
 
+        [HttpGet("[action]")]
+        public async Task<IEnumerable<VMRequestLogEntity>> ListVM()
+        {
+            return await CosmosDBStorageHelper.GetAllVMsAsync(table);
+        }
+
         /// <summary>
         /// Saves the request log to database.
         /// </summary>
         /// <param name="vmConfig">The VM configuration.</param>
         private static async Task SaveRequestLogToDB(VMConfig vmConfig, string exceptionMessage = "NA")
         {
-            CloudTable table = tableClient.GetTableReference("VMRequestLog");
-            await table.CreateIfNotExistsAsync();
-
-            VMRequestLogEntity vmRequestLogEntity = new VMRequestLogEntity(vmConfig.name, vmConfig.size)
+            VMRequestLogEntity vmRequestLogEntity = new VMRequestLogEntity(vmConfig.VMName, vmConfig.VMSize)
             {
-                VMName = vmConfig.name,
-                VMSize = vmConfig.size,
+                VMName = vmConfig.VMName,
+                VMSize = vmConfig.VMSize,
                 ErrorMessage = exceptionMessage
             };
 
@@ -178,11 +174,11 @@ namespace AzureMgmt.Controllers
         private static VirtualMachineSizeTypes GetVMSize(VMConfig vmConfig)
         {
             VirtualMachineSizeTypes size;
-            if (vmConfig.size == "StandardD1")
+            if (vmConfig.VMSize == "StandardD1")
             {
                 size = VirtualMachineSizeTypes.StandardD1;
             }
-            else if (vmConfig.size == "StandardD2")
+            else if (vmConfig.VMSize == "StandardD2")
             {
                 size = VirtualMachineSizeTypes.StandardD2;
             }

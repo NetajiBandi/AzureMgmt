@@ -1,6 +1,7 @@
 ﻿using AzureMgmt.Entities;
 using Microsoft.Azure.Cosmos.Table;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace AzureMgmt.Helpers
@@ -22,6 +23,8 @@ namespace AzureMgmt.Helpers
 
             try
             {
+                await table.CreateIfNotExistsAsync();
+
                 // Create the InsertOrMerge table operation
                 TableOperation insertOrMergeOperation = TableOperation.InsertOrMerge(entity);
 
@@ -40,6 +43,17 @@ namespace AzureMgmt.Helpers
             {
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Gets all VMs asynchronous.
+        /// </summary>
+        /// <param name="table">The table.</param>
+        /// <returns>Gets all VMs</returns>
+        public static async Task<IEnumerable<VMRequestLogEntity>> GetAllVMsAsync(CloudTable table)
+        {
+            TableQuery<VMRequestLogEntity> query = new TableQuery<VMRequestLogEntity>();
+            return await table.ExecuteQuerySegmentedAsync(query, null);
         }
     }
 }

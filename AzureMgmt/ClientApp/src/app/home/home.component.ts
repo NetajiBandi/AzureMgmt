@@ -9,11 +9,18 @@ export class HomeComponent {
   private _http: HttpClient;
   private _baseUrl: string;
 
+  public vmList: VMConfig[];
   public vmConfig: VMConfig = new VMConfig();
 
   constructor(http: HttpClient, @Inject('BASE_URL') baseUrl: string) {
     this._http = http;
     this._baseUrl = baseUrl;
+    //setInterval(() => {
+      http.get<VMConfig[]>(baseUrl + 'api/AzureMgmt/ListVM').subscribe(result => {
+        this.vmList = result;
+        console.log(this.vmList)
+      }, error => console.error(error));
+    //}, 5000);
   }
 
   onSubmit() {
@@ -33,6 +40,7 @@ export class HomeComponent {
 }
 
 class VMConfig {
-  name: string;
-  size: string;
+  VMName: string;
+  VMSize: string;
+  ErrorMessage: string;
 }

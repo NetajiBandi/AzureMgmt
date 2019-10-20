@@ -1,40 +1,34 @@
 <h1>Azure Management!</h1>
-<p><!--Welcome to azure management application, built with:--></p>
 <p>Welcome to azure management application</p>
-<!--<ul>
-  <li><a href='https://get.asp.net/'>ASP.NET Core</a> and <a href='https://msdn.microsoft.com/en-us/library/67ef8sbd.aspx'>C#</a> for cross-platform server-side code</li>
-  <li><a href='https://angular.io/'>Angular</a> and <a href='http://www.typescriptlang.org/'>TypeScript</a> for client-side code</li>
-  <li><a href='http://getbootstrap.com/'>Bootstrap</a> for layout and styling</li>
-</ul>-->
 
 <div class="container">
   <form (ngSubmit)="onSubmit()" #heroForm="ngForm">
     <div class="form-group">
-      <label for="name"><b>Name of VM</b></label>
+      <label for="VMName"><b>Name of VM</b></label>
       <input type="text" placeholder="Enter VM Name" class="form-control col-md-3"
-             [(ngModel)]="vmConfig.name"
+             [(ngModel)]="vmConfig.VMName"
              required
-             name="name"
-             #name="ngModel">
-      <div [hidden]="name.valid || name.pristine"
+             name="VMName"
+             #VMName="ngModel">
+      <div [hidden]="VMName.valid || VMName.pristine"
            class="alert alert-danger col-md-3">
         Name is required
       </div>
     </div>
 
     <div class="form-group">
-      <label for="size"><b>Select a VM size</b></label>
+      <label for="VMSize"><b>Select a VM size</b></label>
       <select class="form-control col-md-3"
+              [(ngModel)]="vmConfig.VMSize"
               required
-              name="size"
-              [(ngModel)]="vmConfig.size"
-              #size="ngModel">
+              name="VMSize"
+              #VMSize="ngModel">
         <option value="StandardD1">Standard D1</option>
         <option value="StandardD2">Standard D2</option>
         <option value="StandardD11">Standard D11</option>
       </select>
 
-      <div [hidden]="size.valid || size.pristine"
+      <div [hidden]="VMSize.valid || VMSize.pristine"
            class="alert alert-danger col-md-3">
         Size is required
       </div>
@@ -42,4 +36,28 @@
 
     <button type="submit" class="btn btn-success" [disabled]="!heroForm.form.valid">Create</button>
   </form>
+</div>
+
+<br/>
+<p *ngIf="!vmList"><em>Loading...</em></p>
+
+<div class="container">
+  <table class='table table-striped' *ngIf="vmList">
+    <thead>
+      <tr class="row">
+        <th class="col-md-2">Name</th>
+        <th class="col-md-2">Size</th>
+        <th class="col-md-6">ErrorMessage</th>
+        <th class="col-md-2">Timestamp</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let vm of vmList" class="row">
+        <td class="col-md-2">{{ vm.vmName }}</td>
+        <td class="col-md-2">{{ vm.vmSize }}</td>
+        <td class="col-md-6"><p>{{ vm.errorMessage }}</p></td>
+        <td class="col-md-2">{{ vm.timestamp | date :'dd-MMM-yy h:mm:ss a z'}}</td>
+      </tr>
+    </tbody>
+  </table>
 </div>
